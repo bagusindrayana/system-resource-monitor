@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="index.css">
+  </head>
+  <body>
+    <h2 id="manufacturer">
+      Apple
+    </h2>
+    <ul>
+      <li id="model"></li>
+      <li id="version"></li>
+      <li id="serial"></li>
+    </ul>
+    <div style="width: 100%;">
+      <div class="wrapper col-2">
+        <center><h4>CPU USAGE (%) - <span id="cpu-info"></span></h4></center>
+        <div id="cpu-meter" style="width: 50%;margin:auto;display: block;"></div>
+        <center><h5 id="cpu-temp">Temperature : </h5></center>
+      </div>
+      <div class="wrapper col-2">
+        <center><h4>RAM USAGE (%) - <span id="ram-info"></span></h4></center>
+        <div id="ram-meter" style="width: 50%;margin:auto;display: block;"></div>
+      </div>
+    </div>
+    <div style="width: 100%;">
+      <div class="wrapper col-2"><canvas id="cpu-chart"></canvas></div>
+      <div class="wrapper col-2"><canvas id="memory-chart"></canvas></div>
+    </div>
+
+    <div style="width: 100%;">
+      <div class="wrapper col-3">
+        <ul id="system-detail"></ul>
+      </div>
+      <div class="wrapper col-3">
+        <ul id="cpu-detail"></ul>
+      </div>
+      <div class="wrapper col-3">
+        <ul id="graphics-detail"></ul>
+      </div>
+      <div class="wrapper col-3">
+        <ul id="mem-detail"></ul>
+      </div>
+    </div>
+
+    <script>
+      const { ipcRenderer } = require('electron')
+      var Chart = require('chart.js');
+      var Gauge = require("svg-gauge");
+
+      var cpuGauge = Gauge(document.getElementById("cpu-meter"), {
+        max: 100,
+        // custom label renderer
+        label: function(value) {
+          return Math.round(value) + "/" + this.max;
+        },
+        value: 0,
+        // Custom dial colors (Optional)
+        color: function(value) {
+          if(value < 20) {
+            return "#5ee432"; // green
+          }else if(value < 40) {
+            return "#fffa50"; // yellow
+          }else if(value < 60) {
+            return "#f7aa38"; // orange
+          }else {
+            return "#ef4655"; // red
+          }
+        }
+    });
+
+    var ramGauge = Gauge(document.getElementById("ram-meter"), {
+        max: 100,
+        // custom label renderer
+        label: function(value) {
+          return Math.round(value) + "/" + this.max;
+        },
+        value: 0,
+        // Custom dial colors (Optional)
+        color: function(value) {
+          if(value < 20) {
+            return "#5ee432"; // green
+          }else if(value < 40) {
+            return "#fffa50"; // yellow
+          }else if(value < 60) {
+            return "#f7aa38"; // orange
+          }else {
+            return "#ef4655"; // red
+          }
+        }
+    });
+
+
+      const cpuChart = new Chart('cpu-chart', {
+				type: 'line',
+				data: {
+					labels: [],
+					datasets: [{
+            label: "CPU USAGE (0%)",
+            fill: false,
+            lineTension: 0.1,
+            backgroundColor: "rgba(75,192,192,0.4)",
+            borderColor: "rgba(75,192,192,1)",
+            borderCapStyle: 'butt',
+            borderDash: [],
+            borderDashOffset: 0.0,
+            borderJoinStyle: 'miter',
+            pointBorderColor: "rgba(75,192,192,1)",
+            pointBackgroundColor: "#fff",
+            pointBorderWidth: 1,
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: "rgba(75,192,192,1)",
+            pointHoverBorderColor: "rgba(220,220,220,1)",
+            pointHoverBorderWidth: 2,
+            pointRadius: 1,
+            pointHitRadius: 10,
+            data:[],
+            spanGaps: false,
+					}]
+				},
+        options: {
+                responsive: true,
+                
+                scales: {
+                   
+                    yAxes: [{
+                            display: true,
+                            ticks: {
+                                beginAtZero: true,
+                                steps: 0.1,
+                                stepValue: 10,
+                                max: 100
+                            }
+                        }]
+                }
+            }
+			});
+
+
+      const memoryChart = new Chart('memory-chart', {
+				type: 'line',
+				data: {
+					labels: [],
+					datasets: [{
+            label: "RAM USAGE (0%)",
+            fill: false,
+            lineTension: 0.1,
+            backgroundColor: "rgba(75,192,192,0.4)",
+            borderColor: "rgb(48,202,228)",
+            borderCapStyle: 'butt',
+            borderDash: [],
+            borderDashOffset: 0.0,
+            borderJoinStyle: 'miter',
+            pointBorderColor: "rgb(48,202,228)",
+            pointBackgroundColor: "#fff",
+            pointBorderWidth: 1,
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: "rgb(48,202,228)",
+            pointHoverBorderColor: "rgba(220,220,220,1)",
+            pointHoverBorderWidth: 2,
+            pointRadius: 1,
+            pointHitRadius: 10,
+            data:[],
+            spanGaps: false,
+					}]
+				},
+        options: {
+                responsive: true,
+                
+                scales: {
+                   
+                    yAxes: [{
+                            display: true,
+                            ticks: {
+                                beginAtZero: true,
+                                steps: 0.1,
+                                stepValue: 10,
+                                max: 100
+                            }
+                        }]
+                }
+            }
+			});
+
+  
+
+
+      ipcRenderer.on('datas',(event,data) => {
+        //console.log(data);
+        // return;
+        document.title = `${data.platform} - System Monitor`;
+        
+
+        document.getElementById('manufacturer').innerHTML = data.system.manufacturer;
+        document.getElementById('model').innerHTML = data.system.model;
+        document.getElementById('version').innerHTML = data.system.version;
+        document.getElementById('serial').innerHTML = data.system.serial;
+
+        let lis = '';
+        for (const k in data.system) {
+          if (Object.hasOwnProperty.call(data.system, k)) {
+            const e = data.system[k];
+            lis += `<li>${k} : ${e}</li>`;
+          }
+        }
+        document.getElementById('system-detail').innerHTML = lis;
+        
+        var date = new Date;
+          
+        var seconds = date.getSeconds();
+        var minutes = date.getMinutes();
+        var hour = date.getHours();
+
+
+        if(cpuChart.data.labels.length > 7){
+          cpuChart.data.labels.shift();  
+          cpuChart.data.datasets[0].data.shift();
+        }
+        
+        if(data.cpu){
+          document.getElementById('cpu-info').innerHTML = `${data.cpu.manufacturer} ${data.cpu.brand} ${data.cpu.speed} GHz`;
+
+          let lis = '';
+          for (const k in data.cpu) {
+            if (Object.hasOwnProperty.call(data.cpu, k)) {
+              const e = data.cpu[k];
+              lis += `<li>${k} : ${e}</li>`;
+            }
+          }
+          document.getElementById('cpu-detail').innerHTML = lis;
+        }
+
+        if(data.cpuTemperature && data.cpuTemperature.main != null){
+          document.getElementById('cpu-temp').style.display = "block";
+          document.getElementById('cpu-temp').innerHTML = `Temperature : ${data.cpuTemperature.main}`;
+        } else {
+          document.getElementById('cpu-temp').style.display = "none";
+        }
+
+        if(data.cpuUsage){
+          
+          cpuGauge.setValueAnimated(data.cpuUsage, 1);
+          cpuChart.data.labels.push(`${hour}:${minutes}:${seconds}`);
+          cpuChart.data.datasets[0].data.push(data.cpuUsage.toFixed(2));
+          cpuChart.data.datasets[0].label = `CPU USAGE (${data.cpuUsage.toFixed(2)}%)`;
+          cpuChart.update();
+        }
+
+        if(memoryChart.data.labels.length > 7){
+          memoryChart.data.labels.shift();  
+          memoryChart.data.datasets[0].data.shift();
+        }
+
+        if(data.mem){
+          let lis = '';
+          for (const k in data.mem) {
+            if (Object.hasOwnProperty.call(data.mem, k)) {
+              const e = data.mem[k];
+              lis += `<li>${k} : ${e}</li>`;
+            }
+          }
+          document.getElementById('mem-detail').innerHTML = lis;
+          var memUsage = (data.mem.used/data.mem.total)*100;
+          document.getElementById('ram-info').innerHTML = `${(data.mem.total/1024/1024/1024)} GB`;
+          ramGauge.setValueAnimated(memUsage, 1);
+          memoryChart.data.labels.push(`${hour}:${minutes}:${seconds}`);
+          memoryChart.data.datasets[0].data.push(memUsage.toFixed(2));
+          memoryChart.data.datasets[0].label = `RAM USAGE (${memUsage.toFixed(2)}%)`;
+          memoryChart.update();
+        }
+
+        if(data.graphics){
+          let lis = '';
+          for (const k in data.graphics) {
+            if (Object.hasOwnProperty.call(data.graphics, k)) {
+              const e = data.graphics[k];
+              for (const kk in e) {
+                if (Object.hasOwnProperty.call(e, kk)) {
+                  const ee = e[kk];
+                  for (const kkk in ee) {
+                    if (Object.hasOwnProperty.call(ee, kkk)) {
+                      const eee = ee[kkk];
+                      lis += `<li>${kkk} : ${eee}</li>`;
+                    }
+                  }
+                }
+              }
+            }
+          }
+          document.getElementById('graphics-detail').innerHTML = lis;
+        }
+
+        
+      });
+    
+      
+    </script>
+  </body>
+
+  
+</html>
